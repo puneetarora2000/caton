@@ -177,30 +177,6 @@ Intra spikes missing from best cluster: 117 ==&gt; Type II error rate: 11.2%
 </div>
 <p>The type II error rate is higher, presumably because there are overlapping spikes that we get with the stacked 32-channel that didn&#8217;t occur with the original 32-channel data. The type I error rate is lower on some recordings&#8211;this may have to do with thresholds being different (threshold is determined by a segment of several seconds at the start of the data.)</p>
 </div>
-<div class="section" id="performance-on-real-32-channel-data">
-<h2>Performance on real 32-channel data<a class="headerlink" href="#performance-on-real-32-channel-data" title="Permalink to this headline">¶</a></h2>
-<p>Next we run the program on data collected from a 32-channel probe, recorded from the entorhinal cortex of a sleeping rat. The recording also contains electrical stimulation. This data was collected by Mariano Belluscio from the Buzsáki lab.</p>
-<p>The program detected 1 million spikes and grouped them into 24 clusters. Clusters 18-24 are artifacts from stimulation. The following are the mean waveforms and autocorrelograms of the remaining clusters:</p>
-<div align="center" class="align-center"><img alt="_images/klusters1.png" class="align-center" src="_images/klusters1.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters2.png" class="align-center" src="_images/klusters2.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters3.png" class="align-center" src="_images/klusters3.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters4.png" class="align-center" src="_images/klusters4.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters5.png" class="align-center" src="_images/klusters5.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters6.png" class="align-center" src="_images/klusters6.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters7.png" class="align-center" src="_images/klusters7.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters8.png" class="align-center" src="_images/klusters8.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters9.png" class="align-center" src="_images/klusters9.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters10.png" class="align-center" src="_images/klusters10.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters11.png" class="align-center" src="_images/klusters11.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters12.png" class="align-center" src="_images/klusters12.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters13.png" class="align-center" src="_images/klusters13.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters14.png" class="align-center" src="_images/klusters14.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters15.png" class="align-center" src="_images/klusters15.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters16.png" class="align-center" src="_images/klusters16.png" style="width: 15cm;" /></div>
-<div align="center" class="align-center"><img alt="_images/klusters17.png" class="align-center" src="_images/klusters17.png" style="width: 15cm;" /></div>
-<p>Last, here is the cross-correlogram of the non-artifact clusters:</p>
-<div align="center" class="align-center"><img alt="_images/ccg.png" class="align-center" src="_images/ccg.png" style="width: 20cm;" /></div>
-</div>
 </div>
 
 
@@ -214,7 +190,6 @@ Intra spikes missing from best cluster: 117 ==&gt; Type II error rate: 11.2%
 <li><a class="reference external" href="">Performance validation</a><ul>
 <li><a class="reference external" href="#intracellular-extracellular-dataset">Intracellular-extracellular dataset</a></li>
 <li><a class="reference external" href="#performance-on-synthesized-32-channel-data">Performance on synthesized 32-channel data</a></li>
-<li><a class="reference external" href="#performance-on-real-32-channel-data">Performance on real 32-channel data</a></li>
 </ul>
 </li>
 </ul>
