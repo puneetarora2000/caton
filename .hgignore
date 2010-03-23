@@ -6,7 +6,6 @@ syntax: glob
 build
 dist
 deb_dist
-doc/_build/
 doc/generated_data/*
 .DS_Store
 pip-log.txt
@@ -15,3 +14,5 @@ temp
 *_generalize
 *_intracellular
 *.orig
+*.pickle
+*.doctree
