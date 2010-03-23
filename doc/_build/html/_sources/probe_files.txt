@@ -6,6 +6,8 @@ To cluster a data file, you must create a ``.probe`` file, which tells the progr
 
 Each line of the probe file describes one recording site. The lines can have three different formats, whether the probe is zero-dimensional, one-dimensional, or two-dimensional. What follows are sample probe files. The parenthesized expressions give x and y coordinates (scale is irrelevant.)
 
+You can use the script ``plot_probe.py`` to check that the layout of the sites is correct and the adjacency graph (represented by blue lines) is reasonable.
+
 Zero-dimensional probe
 -----------------------
 
