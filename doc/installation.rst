@@ -36,6 +36,7 @@ Python dependencies on Debian/Ubuntu Linux
 First install a bunch of packages::
 
    sudo apt-get install python-numpy python-scipy python-matplotlib cython python-setuptools
+   sudo apt-get build-dep python-tables
    sudo easy_install pyrex
    sudo easy_install http://www.pytables.org/download/preliminary/pytables-2.2b3/
 
