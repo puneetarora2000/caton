@@ -1,0 +1,25 @@
+t1 0
+t2 1
+t3 2
+t4 3
+f0 4
+f1 5
+
+EDGES
+t1 t2
+t1 t3
+t1 t4
+t1 f0
+t1 f1
+t2 t3
+t2 t4
+t2 f0
+t2 f1
+t3 t4
+t3 f0
+t3 f1
+t4 f0
+t4 f1
+f0 f1
+GROUPS
+t1 t2 t3 t4 f0 f1
