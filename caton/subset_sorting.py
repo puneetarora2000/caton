@@ -31,10 +31,6 @@ def cluster_withsubsets(spike_table,reorder_clus=True):
     ST_nc = np.bool8(spike_table.cols.st[:])
     Fet_nc3 = spike_table.cols.fet[:]    
     
-    if probe_stuff.PROBE_DIM == None or probe_stuff.PROBE_DIM == 0:
-        return klustakwik_cluster(Fet_nc3)
-    
-    
     ChSubsets = probe_stuff.SORT_GROUPS
     SpkSubsets = spike_subsets(ST_nc,ChSubsets)    
     print("%i subsets total"%len(SpkSubsets))
