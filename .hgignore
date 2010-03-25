@@ -1,0 +1,18 @@
+syntax: glob
+*.pyc
+*~
+*.wpr
+*.so
+build
+dist
+deb_dist
+doc/generated_data/*
+.DS_Store
+pip-log.txt
+temp
+*_batch
+*_generalize
+*_intracellular
+*.orig
+*.pickle
+*.doctree

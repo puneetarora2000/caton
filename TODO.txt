@@ -1,0 +1,32 @@
+Urgent
+========
+
+* put channel info in h5 file: channel names and dat channels
+* more info in xml file
+* option to rewrite old folder
+* check over the work on resorting and deleting noise points. see if it solves memory issues. MERGE with dorothy work!
+* comment more functions
+* triangulation gives weird edges. figure out better way to assign edges
+* assign edges for double-edge probes
+* Something for split clusters (due to drift?)
+* document output files
+* document cluster merging procedure
+* document new probe file specification
+
+Fixed but untested
+=====================
+* remove duplicate spikes
+* merge sorts
+* Build fails for older numpy version--must recompile cython [This seem to be due to sudo $PATH in ubuntu]
+* test_tools fix data dir
+
+Non-urgent
+=====================
+
+* entering, exiting give wrong filename
+* Doc should show acg for d11221 so you know what error rate to expect for a given acg
+* subset_sorting.py is a mess--refactor into smaller functions
+* profile, especially find_cutoffs
+* detect/align positive spikes?
+* write a tool for line profiling a lot of funcs.
+
