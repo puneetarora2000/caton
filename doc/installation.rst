@@ -38,7 +38,8 @@ First install a bunch of packages::
    sudo apt-get install python-numpy python-scipy python-matplotlib cython python-setuptools
    sudo apt-get build-dep python-tables
    sudo easy_install pyrex
-   sudo easy_install http://www.pytables.org/download/preliminary/pytables-2.2b3/
+   sudo easy_install http://www.pytables.org/download/preliminary/pytables-2.2b3/tables-2.2b3.tar.gz
+
 
 .. _sageinst:
 
@@ -77,7 +78,7 @@ This starts a *subshell* where all environment variables (e.g. paths) are set, a
 After starting the subshell, type::
 
     easy_install pyrex
-    easy_install http://www.pytables.org/download/preliminary/pytables-2.2b3/
+    easy_install http://www.pytables.org/download/preliminary/pytables-2.2b3/tables-2.2b3.tar.gz
 
 
 Installing KlustaKwik
