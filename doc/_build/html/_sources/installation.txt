@@ -12,7 +12,7 @@ Caton should work on any `*nix` operating system (including Linux and Mac OS X).
    * scipy
    * matplotlib
    * cython
-   * pytables (>= 2.1)
+   * pytables (>= 2.2)
 
 2. KlustaKwik
 
@@ -35,7 +35,10 @@ Python dependencies on Debian/Ubuntu Linux
 
 First install a bunch of packages::
 
-   sudo apt-get install python-numpy python-scipy python-matplotlib cython python-tables
+   sudo apt-get install python-numpy python-scipy python-matplotlib cython python-setuptools
+   sudo apt-get build-dep python-tables
+   sudo easy_install pyrex
+   sudo easy_install http://www.pytables.org/download/preliminary/pytables-2.2b3/
 
 .. _sageinst:
 
@@ -73,7 +76,8 @@ This starts a *subshell* where all environment variables (e.g. paths) are set, a
 
 After starting the subshell, type::
 
-    easy_install tables
+    easy_install pyrex
+    easy_install http://www.pytables.org/download/preliminary/pytables-2.2b3/
 
 
 Installing KlustaKwik
