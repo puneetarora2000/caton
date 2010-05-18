@@ -55,7 +55,7 @@
 <li>scipy</li>
 <li>matplotlib</li>
 <li>cython</li>
-<li>pytables (&gt;= 2.2)</li>
+<li>pytables</li>
 </ul>
 </li>
 <li>KlustaKwik</li>
@@ -72,7 +72,10 @@
 <div class="highlight-python"><pre>sudo apt-get install python-numpy python-scipy python-matplotlib cython python-setuptools
 sudo apt-get build-dep python-tables
 sudo easy_install pyrex
-sudo easy_install http://www.pytables.org/download/preliminary/pytables-2.2b3/tables-2.2b3.tar.gz</pre>
+sudo easy_install tables</pre>
+</div>
+<p>If you get an error about <tt class="docutils literal"><span class="pre">utilsExtension</span></tt> try this:</p>
+<div class="highlight-python"><pre>easy_install http://www.pytables.org/download/preliminary/pytables-2.2b3/tables-2.2b3.tar.gz</pre>
 </div>
 </div>
 <div class="section" id="python-dependencies-with-sage">
