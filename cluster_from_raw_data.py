@@ -1,4 +1,4 @@
-#!/usr/bin/python -W ignore::Warning
+#!/usr/bin/env python -W ignore::Warning
 import sys,os,shutil
 from optparse import OptionParser
 from caton.core import classify_from_raw_data

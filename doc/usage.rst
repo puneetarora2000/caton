@@ -5,7 +5,10 @@ Usage
 Data file format
 =================
 
-This software assumes your data is binary format as a contiguous block of 16-bit integers::
+The input and output data are the same as the formats used by Klusters and Neuroscope. These are described at http://neuroscope.sourceforge.net/UserManual/data-files.html
+
+
+Input to ``cluster_from_raw_data.py`` is a binary file, which is a contiguous block of 16-bit integers::
      
      sample 1, channel 1
      sample 1, channel 2

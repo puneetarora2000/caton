@@ -11,8 +11,8 @@ def write_clu(clus,filepath):
         next lines: one integer per line"""
     clu_file = open( filepath,'w')
     #header line: number of clusters
-    n_clu = clus.max()        
-    clu_file.write( '1000\n')
+    n_clu = clus.max()+1
+    clu_file.write( '%i\n'%n_clu)
     #one cluster per line
     np.savetxt(clu_file,np.int16(clus),fmt="%i")
     clu_file.close()

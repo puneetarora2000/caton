@@ -158,7 +158,9 @@ def cluster_group_from_raw_data(basename,DatFileName,n_ch_dat,Channels_dat,Chann
     TmArr = spike_table.cols.time[:]
 
     final_table = hdf5file.createTable("/","SpikeTable",spike_dtype())
-    final_table.append(spike_table[good_inds(CluArr,TmArr)])
+    for ind in good_inds(CluArr,TmArr):
+        final_table.append(spike_table[ind:(ind+1)])
+    #final_table.append(spike_table[good_inds(CluArr,TmArr)])
     final_table.flush()
 
     hdf5file.removeNode("/SpikeTable_temp")

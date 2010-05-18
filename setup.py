@@ -1,20 +1,13 @@
 from __future__ import with_statement
 import os,sys,numpy
-from distutils.core import setup,Extension
-from Cython.Distutils import build_ext
 
 # Give scripts the correct first line.
 scripts = ["check_crosstalk.py","cluster_from_raw_data.py","extract_intra_spikes.py","generalize_from_raw_data.py",
            "make_features_from_spk.py","plot_features.py","plot_probe.py","combine_dirs.py"]
-for script in scripts:
-    newlines = ["#!/usr/bin/python -W ignore::Warning\n"]
-    with open(script,"r") as fd:
-        lines = fd.readlines()
-    if lines[0].startswith("#!"): lines = lines[1:]
-    newlines += lines
-    with open(script,"w") as fd:
-        fd.writelines(newlines)
-    os.chmod(script,0755)    
+
+from distutils.core import setup,Extension
+from Cython.Distutils import build_ext
+
     
 setup(name="caton",
       scripts=scripts,
