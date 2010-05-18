@@ -15,6 +15,8 @@ if False: import matplotlib
 import time
 import os
 import estimate_cov
+try: from scikits.sparse.cholmod import cholesky as sparse_cholesky
+except Exception: sparse_cholesky = np.linalg.cholesky
 import scipy.sparse as sparse
 from scipy.stats import scoreatpercentile
 import multiprocessing as mp
@@ -47,7 +49,7 @@ def get_InvSqrtCov(Cov_mff,GraphInfo):
                 InvSqrtCov_mff[m] = np.matrix(np.linalg.cholesky(np.linalg.inv(Cov_mff[m])).T.copy())
                 ### copy() because we want rows stored contiguously
             else:
-                InvSqrtCov_mff[m] = sparse.csr_matrix(np.linalg.cholesky(GraphInfo.concentration(Cov_mff[m])).T)
+                InvSqrtCov_mff[m] = sparse.csr_matrix(sparse_cholesky(sparse.csc_matrix(GraphInfo.concentration(Cov_mff[m]))).L().T,dtype=np.float32)
         except np.linalg.LinAlgError:
             InvSqrtCov_mff[m] = np.matrix(np.zeros_like(Cov_mff[0]))
             tprint("singular covariance matrix encountered with cluster %i/%i"%(m+1,len(Cov_mff)),colorstring=bcolors.WARNING)

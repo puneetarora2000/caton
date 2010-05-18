@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    '#',
         VERSION:     '0.1',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
@@ -49,7 +49,8 @@
 <h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="data-file-format">
 <h2>Data file format<a class="headerlink" href="#data-file-format" title="Permalink to this headline">¶</a></h2>
-<p>This software assumes your data is binary format as a contiguous block of 16-bit integers:</p>
+<p>The input and output data are the same as the formats used by Klusters and Neuroscope. These are described at <a class="reference external" href="http://neuroscope.sourceforge.net/UserManual/data-files.html">http://neuroscope.sourceforge.net/UserManual/data-files.html</a></p>
+<p>Input to <tt class="docutils literal"><span class="pre">cluster_from_raw_data.py</span></tt> is a binary file, which is a contiguous block of 16-bit integers:</p>
 <div class="highlight-python"><pre>sample 1, channel 1
 sample 1, channel 2
 ...
@@ -180,7 +181,7 @@ Options:
         <div class="sphinxsidebarwrapper">
             <h3><a href="index.html">Table Of Contents</a></h3>
             <ul>
-<li><a class="reference external" href="">Usage</a><ul>
+<li><a class="reference external" href="#">Usage</a><ul>
 <li><a class="reference external" href="#data-file-format">Data file format</a></li>
 <li><a class="reference external" href="#overview">Overview</a><ul>
 <li><a class="reference external" href="#batch">Batch</a></li>
@@ -241,7 +242,7 @@ Options:
     </div>
     <div class="footer">
       &copy; Copyright 2009, John Schulman.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.3.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.5.
     </div>
   </body>
 </html>

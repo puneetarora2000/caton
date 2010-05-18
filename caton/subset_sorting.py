@@ -45,7 +45,7 @@ def cluster_withsubsets(spike_table,reorder_clus=True):
         # We are ignoring cluster 0 here, because of [1:] above. No not now
         for (i_clu,Members) in enumerate(CluMembersList):
             if len(Members) > MIN_CLU_SIZE:
-                SpkMean = spike_table[Members]["wave"][:,:,ChHere].mean(axis=0)
+                SpkMean = np.array([spike_table[member]["wave"][:,ChHere] for member in Members]).mean(axis=0)
                 key = (i_subset,i_clu)
                 key2subset[key]=ChHere
                 key2members[key] = Members

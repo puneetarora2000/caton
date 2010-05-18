@@ -1,4 +1,4 @@
-#!/usr/bin/python -W ignore::Warning
+#!/usr/bin/env python -W ignore::Warning
 
 from caton.features import make_features_from_spk
 from optparse import OptionParser

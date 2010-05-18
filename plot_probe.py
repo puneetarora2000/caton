@@ -1,4 +1,4 @@
-#!/usr/bin/python -W ignore::Warning
+#!/usr/bin/env python -W ignore::Warning
 
 from caton.probe_stuff import plot_probe
 from optparse import OptionParser

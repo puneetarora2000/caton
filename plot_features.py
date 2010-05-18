@@ -1,4 +1,4 @@
-#!/usr/bin/python -W ignore::Warning
+#!/usr/bin/env python -W ignore::Warning
 
 from caton.features import plot_features
 from optparse import OptionParser

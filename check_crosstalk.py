@@ -1,4 +1,4 @@
-#!/usr/bin/python -W ignore::Warning
+#!/usr/bin/env python -W ignore::Warning
 
 from caton.core import get_dat_pars
 import caton.probe_stuff as probe_stuff
