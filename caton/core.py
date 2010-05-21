@@ -579,13 +579,6 @@ def spk_writer(SpkStream,SpkFileName):
             spk.astype(np.int16).tofile(fd)
             yield
 
-def spk_reader(SpkFileName,n_ch,n_s):
-    with open(SpkFileName,'rb') as fd:
-        n_spikes = num_samples(SpkFileName,n_ch)//n_s
-        for i in xrange(n_spikes):
-            samples = np.fromfile(fd,dtype=np.int16,count = n_ch*n_s)
-            yield samples.reshape(n_s,n_ch)
-
         
 
 #########################################

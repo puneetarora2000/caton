@@ -81,6 +81,10 @@ def write_xml(n_ch,n_samp,n_feat,sample_rate,filepath):
     ET.SubElement(acquisitionSystem,'nBits').text = '16'
     ET.SubElement(acquisitionSystem,'nChannels').text = str(n_ch)
     ET.SubElement(acquisitionSystem,'samplingRate').text = str(int(sample_rate))
+    ET.SubElement(acquisitionSystem,'voltageRange').text = '20'
+    ET.SubElement(acquisitionSystem,'amplification').text = "1000"
+    ET.SubElement(acquisitionSystem,'offset').text = "2048"
+
     channels = ET.SubElement(ET.SubElement(ET.SubElement(parameters,'channelGroups'),'group'),'channels')
     for i_ch in range(n_ch):
         ET.SubElement(channels,'channel').text=str(i_ch)
