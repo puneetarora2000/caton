@@ -2,15 +2,12 @@
 
 from caton.core import get_dat_pars
 import caton.probe_stuff as probe_stuff
-import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
+import matplotlib.pyplot as plt, numpy as np
+import os, caton.myopts
 from scipy.signal import lfilter,butter
-import sys,os
 from optparse import OptionParser
-import caton.myopts
 from caton.utils_misc import find_file_with_ext,basename_noext
-from caton.utils_graphs import *
+from caton.utils_graphs import edges
 
 TINY = 1e-4
 
@@ -49,7 +46,7 @@ def check_crosstalk(DatFileName,ProbeFileName=None,output_dir = None):
         vals,vec_mat = np.linalg.eigh(Cov_cc)
         print "Singular covariance matrix. Small eigvals/eigvecs:"
         np.set_printoptions(precision=2,suppress=True)
-        for val,vec in zip(filter(lambda x: x < TINY, vals),vec_mat.T):
+        for _val,vec in zip(filter(lambda x: x < TINY, vals),vec_mat.T):
             print vec
         exit()
     

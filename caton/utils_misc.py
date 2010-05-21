@@ -1,12 +1,8 @@
 from __future__ import division, with_statement
-import os
 from time import time
-import numpy as np
-import itertools as it,operator as op
-import re,cPickle
-join = os.path.join
-dirname = os.path.dirname
-abspath = os.path.abspath
+import itertools as it,operator as op, numpy as np 
+import re,cPickle, os
+from os.path import join
 
 ##########################
 ####### Decorators #######
@@ -100,7 +96,7 @@ class memoized(object):
 #####################################
 
 def List(n,fill=None):
-    return [fill for i in xrange(n)]
+    return [fill for _ in xrange(n)]
 
 def mymap(func,seqs,start=0,end=None,func_args={}):
     n = len(seqs[0])
@@ -127,8 +123,8 @@ class consumerize(object):
         self.gen = gen_func(**kw)
         
     def send(self,*vals):
-        for val,it in zip(vals,self.its):
-            it.send(val)
+        for val,iterator in zip(vals,self.its):
+            iterator.send(val)
         return self.gen.next() 
     def close(self):
         self.gen.close()
@@ -139,8 +135,8 @@ def helicase(Iterator,n_values):
 
 
 def chain_from_iterable(iterables):
-    for it in iterables:
-        for element in it:
+    for seq in iterables:
+        for element in seq:
             yield element             
 
 def identity(x):
@@ -191,7 +187,6 @@ def get_padded(Arr,Start,End):
 
 def naive_maximize(func,domain,func_args={},MinimizeInstead=False):
     values = mymap(func,seqs=(domain,),func_args=func_args)    
-    
     return domain[np.argmin(values) if MinimizeInstead else np.argmax[values]]
 
 ####################
@@ -212,10 +207,8 @@ def is_bool(x):
     return x is True or x is False
 
 def dict_append(old_dict,new_dict):
-    for k,v in new_dict.items():
-        old_dict[k] = v
+    old_dict.update(new_dict)
     return old_dict
-
 
 def avg(seq):
     iterator = iter(seq)

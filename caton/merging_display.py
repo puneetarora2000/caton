@@ -1,6 +1,5 @@
 from __future__ import division
-import numpy as np, matplotlib.pyplot as plt, itertools as it, operator as op
-from utils_misc import *
+import numpy as np, matplotlib.pyplot as plt, itertools as it
 
 NO_VALUE = -423
 
@@ -58,7 +57,7 @@ def plot_clu_data(clu_data,stolen_arr):
             return (.7,1,.7) if b else (1,.7,.7)
         else: return plt.cm.gist_yarg(int(rescale(x)))
     
-    for (i_row,row,y_row) in zip(it.count(),clu_data,y_rows):        
+    for (row,y_row) in zip(clu_data,y_rows):        
         text(x_rank,y_row+dy,row.rank)
         text(x_left,y_row+dy,row.left)
         for x_ch,ch_amp in zip(x_ch_amp,row.ch_amp): 

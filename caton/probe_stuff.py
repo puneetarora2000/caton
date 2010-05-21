@@ -1,19 +1,10 @@
 from __future__ import division, with_statement
-import numpy as np
-import os.path
-import os
-from string import split,strip
-from copy import copy
-try:
-    import matplotlib.pyplot as plt
-    import matplotlib
-except Exception:
-    pass
-from utils_misc import *
-from utils_graphs import *
-import re,string
-from namedtuple import namedtuple
-import matplotlib.delaunay as sd
+import numpy as np, matplotlib.pyplot as plt, matplotlib.delaunay as sd
+from string import strip
+from utils_misc import index_safe, max2min, switch_ext
+from utils_graphs import edges, nodes, complete_graph, add_edge, add_node
+import re,string, matplotlib, os
+from collections import namedtuple
 
 
 PROBE_SITES = None
@@ -205,11 +196,10 @@ def plot_probe(ProbeFileName,output_dir=None):
         x = [site.x for site in PROBE_SITES]
         y = [site.y for site in PROBE_SITES]
 
-    if max2min(x) > max2min(y):
-        figsize = (6,1+max2min(y)/max2min(x)*6)
-    else:
-        figsize = (1+max2min(x)/max2min(y)*6,6)        
-    fig = plt.figure(figsize=figsize)            
+    #if max2min(x) > max2min(y):
+        #figsize = (6,1+max2min(y)/max2min(x)*6)
+    #else:
+        #figsize = (1+max2min(x)/max2min(y)*6,6)        
                
     plt.plot(x,y,'go')
     ax = plt.gca()
@@ -217,7 +207,6 @@ def plot_probe(ProbeFileName,output_dir=None):
     ax.set_yticks([])
     
     for ind_src,ind_targ in edges(PROBE_GRAPH):
-        src,targ = PROBE_SITES[ind_src],PROBE_SITES[ind_targ]
         ax.add_line(matplotlib.lines.Line2D([x[ind_src],x[ind_targ]],[y[ind_src],y[ind_targ]],lw=1))
     
     for ind_node in nodes(PROBE_GRAPH):
