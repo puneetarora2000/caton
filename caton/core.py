@@ -3,19 +3,18 @@ import itertools as it, numpy as np, scipy.signal as signal
 from scipy.stats import rv_discrete
 from scipy.stats.mstats import mquantiles
 from xml.etree.ElementTree import ElementTree
-import re, tables
-try: import json
-except ImportError: import simplejson as json
+import re, tables, json, os
 
+from tables import IsDescription,Int32Col,Float32Col,Int8Col
 import probe_stuff, output
 from utils_graphs import contig_segs,complete_if_none
-from utils_misc import *
-from CEM_extensions import *
+from utils_misc import is_numerical, is_bool, find_file_with_ext, consumerize, indir, dump, to2d, tofloat32, basename_noext, memoized, get_padded, switch_ext, naive_maximize, inrange, dict_append, flatdist
+from CEM_extensions import bincount, class_means, class_covs, class_wts, sqnorm, subset_inds, connected_components
 from features import get_features,compute_pcs
 from subset_sorting import cluster_withsubsets, spike_subsets
 from progressbar import ProgressBar,SimpleProgress,Bar,Percentage
-from interp_stuff import *
-join = os.path.join
+from interp_stuff import interp_around_peak
+from os.path import join
 
 ##########################################################
 #### These are the parameters you might want to change ###
@@ -56,7 +55,7 @@ REGET_FEATURES = False
 SORT_CLUS_BY_CHANNEL = True
 INTERP_METHOD= 'cubic'
 
-parameters = dict([(k,v) for k,v in globals().items() if (is_numerical(v) or is_bool(v))])
+PARAMETERS = dict([(k,v) for k,v in globals().items() if (is_numerical(v) or is_bool(v))])
 
 def set_globals_samples(sample_rate):
     """parameters are set in terms of time (seconds). this sets corresponding parameters in terms of sample rate. should be run before any processing"""
@@ -95,14 +94,12 @@ def classify_from_raw_data(JobType,DatFileName,ProbeFileName,max_spikes=None,out
     with indir(OutDir):    
         Channels_dat = [site.dat for site in probe_stuff.PROBE_SITES]
         if JobType == "batch":
-            cluster_group_from_raw_data(basename,DatFileName,n_ch_dat,Channels_dat,probe_stuff.PROBE_GRAPH,max_spikes)
+            cluster_from_raw_data(basename,DatFileName,n_ch_dat,Channels_dat,probe_stuff.PROBE_GRAPH,max_spikes)
         elif JobType == "generalize":
             generalize_group_from_raw_data_splitprobe(basename,DatFileName,n_ch_dat,Channels_dat,probe_stuff.PROBE_GRAPH,max_spikes,clu_dir)                        
 
 #def spike_dtype():
   #  return np.dtype([("time",np.int32),("st",np.int8,N_CH),("wave",np.float32,(S_TOTAL,N_CH)),("fet",np.float32,(N_CH,FPC)),("clu",np.int32)])            
-            
-from tables import IsDescription,Int32Col,Float32Col,Int8Col
 
 def spike_dtype():
     class description(IsDescription):    
@@ -120,7 +117,7 @@ def make_table(filename,tablename):
     
     
             
-def cluster_group_from_raw_data(basename,DatFileName,n_ch_dat,Channels_dat,ChannelGraph,max_spikes):
+def cluster_from_raw_data(basename,DatFileName,n_ch_dat,Channels_dat,ChannelGraph,max_spikes):
     """Filter, detect, extract, and cluster on raw data."""
     ### Detect spikes. For each detected spike, send it to spike writer, which writes it to a spk file.
     ### List of times is small (memorywise) so we just store the list and write it later.
@@ -291,7 +288,7 @@ def write_files(basename,CluList,TmList,FetList,ChannelGraph=None,STArr=None):
     if STArr is not None:
         np.save("ST.npy",STArr)
         
-    with open("params.json","w") as fd: json.dump(dict_append(parameters,dict(SAMPLE_RATE=str(SAMPLE_RATE),N_CH=N_CH)),fd)
+    with open("params.json","w") as fd: json.dump(dict_append(PARAMETERS,dict(SAMPLE_RATE=str(SAMPLE_RATE),N_CH=N_CH)),fd)
 
 
 
@@ -458,7 +455,7 @@ def find_cutoffs(Fet_nc3,Clu_n,ST_nc):
     the most likely cluster. If the likelihood is lower than this cutoff, it is classified
     as a noise point instead."""
     global ChSubsets
-    ChSubsets = ch_subsets()
+    ChSubsets = probe_stuff.ch_subsets()
     
     # get cluster parameters needed for likelihood
     GoodInds = np.flatnonzero(Clu_n != 0)
@@ -699,7 +696,7 @@ def num_samples(FileName,n_ch_dat,n_bytes=2):
 
 
 ##################################
-####### pbar stuff ###############
+######## progress bar stuff ###############
 ##################################
 
 class sample_counter_widget:
@@ -783,23 +780,3 @@ def test2():
         bar.update(i,i)
         time.sleep(.1)
     bar.finish()
-
-    
-if __name__ == '__main__':
-    #classify_from_raw_data("batch","/home/joschu/Data/mariano/n3m290109.002.dat.dat",None,max_spikes=1000)
-    classify_from_raw_data("batch","/home/joschu/Data/d11221/d11221.002.dat",
-                           "/home/joschu/Code/caton/probes/manual_probe.probe",
-                           max_spikes=1000)
-    
-    #classify_from_raw_data("batch","/home/joschu/Data/mariano/n3m290109.002.dat.dat",None,max_spikes=1000)
-    #classify_from_raw_data("generalize","/home/joschu/Data/mariano/n3m290109.002.dat.dat",None,max_spikes = 1000,
-     #                      clu_dir = "/home/joschu/Data/mariano/n3m290109.002.dat_mariano_batch_85")
-    #import line_profiler
-    #LP = line_profiler.LineProfiler(cluster_group_from_raw_data,interp_around,interp_around_peak,cluster_withsubsets)
-    #LP.run("""classify_from_raw_data("batch","/home/joschu/Data/mariano/n3m290109.002.dat.dat",None,max_spikes=1000)""")
-    #LP.dump_stats("/home/joschu/junk/stats.pickle")
-    #with open("/home/joschu/junk.txt","w") as fd: LP.print_stats(fd)
-    #N_CH = 16
-    #combine_sorts("/home/joschu/Data/Jul8_results/Jul8bALL_side2_batch",
-    #              "/home/joschu/Data/Jul8_results/Jul8bALL_side4_batch")
-    pass

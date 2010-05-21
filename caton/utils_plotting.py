@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 
 def plot2d(X_sc,Ax):
     p2p = max2min(X_sc.flatten())
-    p2p = 500.
     n_s,n_ch = X_sc.shape
     for i_ch in xrange(n_ch):        
         Ax.plot(X_sc[:,i_ch]-i_ch*p2p/2)
@@ -26,9 +25,9 @@ def plot_ccg(Tm_n,Ax,sample_rate = 20000):
     hist,tseries = ccg_hist(Tm_n,sample_rate)
     Ax.plot(tseries,hist)
     
-if __name__ == '__main__':
-    rand_times = np.random.randint(10000,size=300)
+def test_plot2d():
     t = np.arange(0,10,.1)
     x = np.sin(np.vstack((t,t,t))).T
     Ax = plt.figure().add_subplot(1,1,1)
     plot2d(np.sin(x),Ax)
+    plt.show()

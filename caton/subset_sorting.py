@@ -1,11 +1,11 @@
 from __future__ import division, with_statement
-import os,numpy as np, tempfile,collections,matplotlib.delaunay as sd
+import os,numpy as np, tempfile,collections, itertools as it
 from output import write_fet,read_clu
 from CEM_extensions import subset_inds
-from utils_misc import *
+from merging_display import merge_diagnostics
+from utils_misc import time_fun
 import probe_stuff
-join = os.path.join
-split = os.path.split
+from os.path import join
 
 #from merging_display import *
 
@@ -26,7 +26,7 @@ def clu_mag(Mean_mf):
     return (Mean_mf**2).sum(axis=1)
 
 
-def cluster_withsubsets(spike_table,reorder_clus=True):
+def cluster_withsubsets(spike_table):
     "TODO: write docstring"
     ST_nc = np.bool8(spike_table.cols.st[:])
     Fet_nc3 = spike_table.cols.fet[:]    
@@ -34,7 +34,7 @@ def cluster_withsubsets(spike_table,reorder_clus=True):
     ChSubsets = probe_stuff.SORT_GROUPS
     SpkSubsets = spike_subsets(ST_nc,ChSubsets)    
     print("%i subsets total"%len(SpkSubsets))
-    n_spikes,n_ch,FPC = Fet_nc3.shape
+    n_spikes,n_ch,_FPC = Fet_nc3.shape
     
     key2subset, key2members, key2spkmean, key2mag = {},{},{},{}
     for i_subset,ChHere,SpkHere in zip(it.count(),ChSubsets,SpkSubsets):        
@@ -53,7 +53,6 @@ def cluster_withsubsets(spike_table,reorder_clus=True):
                 key2mag[key] = SpkMean.ptp(axis=0).sum()
         
     ImprovingKeys = sorted(key2mag.keys(),key = lambda key: key2mag[key])    
-    n_clu = len(ImprovingKeys)
     #problem: most spikes aren't members of any cluster?!
     
     key2oldcount = dict((key,len(members)) for key,members in key2members.items())
@@ -86,7 +85,8 @@ def cluster_withsubsets(spike_table,reorder_clus=True):
     key2rank = dict((key,rank) for (rank,key) in enumerate(reversed(ImprovingKeys)))
     key2left = dict((key,len(members)) for key,members in key2members.items())
     
-    if DEBUG: merge_diagnostics(n_ch,key2subset,key2rank,key2left,key2good,key2spkmean,fromto2stolen)
+    if DEBUG: 
+        merge_diagnostics(n_ch,key2subset,key2rank,key2left,key2good,key2spkmean,fromto2stolen)
     key2ind = dict((key,ind) for (ind,key) in enumerate(sorted(good_keys,key=lambda key: np.mean(key2subset[key]))))
     FinalCluInd = np.array([key2ind.get(tuple(key),0) for key in FinalClu],dtype=np.int32)
     return FinalCluInd
@@ -107,8 +107,6 @@ def cluster_withsubsets(spike_table,reorder_clus=True):
     #Old2New[ClusToReorder] = ClusToReorder[np.argsort(PeakCh_m[ClusToReorder])]
     
     #return Old2New[Clu_n]
-    
-
 
 @time_fun
 def klustakwik_cluster(Fet_nc3):
@@ -123,11 +121,4 @@ def klustakwik_cluster(Fet_nc3):
     os.system( ' '.join([kk_path, kk_input_filepath[:-6], '1', '-UseFeatures', '1'*n_fet,'-MinClusters',str(MINCLUSTERS),'-MaxClusters',str(MAXCLUSTERS),'-Screen','0']) )
     return read_clu(kk_output_filepath)
 
-
-def test_ch_subsets():
-    xy = np.array(
-        [(0,0),
-        (0,1),(1,1),
-        (0,2),(1,2),(2,2)])
-    assert ch_subsets(xy) == [[0, 1, 2, 4],[1, 2, 3, 4], [1, 2, 4, 5]]
     

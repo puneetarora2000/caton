@@ -1,6 +1,4 @@
 import numpy as np
-from utils_misc import *
-from scipy.interpolate import interp1d
 from scipy.signal import cspline1d,cspline1d_eval
 
 def abc(x_3,y_3):
@@ -17,12 +15,13 @@ def interp_around(X_sc,s_fracpeak,s_before,s_after,kind='cubic'):
     for i_c in xrange(n_c):
         #Out_sc[:,i_c] = np.interp(np.arange(s_fracpeak - s_before,s_fracpeak+s_after,type=np.float32),
         #                          np.arange(X_sc.shape[0]),X_sc[:,i_c])
-        coeffs = cspline1d(X_sc[:,i_c])
-        Out_sc[:,i_c] = cspline1d_eval(coeffs,
+        if kind == 'cubic':
+            coeffs = cspline1d(X_sc[:,i_c])
+            Out_sc[:,i_c] = cspline1d_eval(coeffs,
                                        newx=np.arange(s_fracpeak - s_before,s_fracpeak+s_after,dtype=np.float32))
-        #Out_sc[:,i_c] = interp1d(np.arange(X_sc.shape[0]),
-        #                         X_sc[:,i_c],
-        #                         bounds_error=True,kind=kind)(np.arange(s_fracpeak - s_before,s_fracpeak+s_after,dtype=np.float32))
+        else:
+            Out_sc[:,i_c] = interp1d(np.arange(X_sc.shape[0]),X_sc[:,i_c],
+                                     bounds_error=True,kind=kind)(np.arange(s_fracpeak - s_before,s_fracpeak+s_after,dtype=np.float32))
     return Out_sc
 
 def interp_around_peak(X_sc,i_intpeak,c_peak,s_before,s_after,pad=False,kind='cubic'):    

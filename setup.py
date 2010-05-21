@@ -11,7 +11,7 @@ from Cython.Distutils import build_ext
     
 setup(name="caton",
       scripts=scripts,
-      version="0.2-beta",
+      version="0.2.1-beta",
       author="John Schulman",
       author_email="joschu@caltech.edu",
       description="Spike sorting for multi-site probes",

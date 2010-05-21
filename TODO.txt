@@ -1,6 +1,7 @@
 Urgent
 ========
 
+* update links
 * more info in xml file
 * neuroshare support
 * option to rewrite old folder
