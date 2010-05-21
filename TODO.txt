@@ -1,17 +1,10 @@
 Urgent
 ========
 
+* document code
 * update links
-* more info in xml file
-* neuroshare support
-* option to rewrite old folder
-* comment more functions
-* triangulation gives weird edges. figure out better way to assign edges
-* assign edges for double-edge probes
-* Something for split clusters (due to drift?)
-* document output files
-* document cluster merging procedure
-* document new probe file specification
+* document cluster merging procedure and diagnostics
+* allow users to select parameters
 
 Fixed but untested
 =====================
@@ -23,5 +16,7 @@ Non-urgent
 * put channel info in h5 file: channel names and dat channels
 * entering, exiting give wrong filename
 * Doc should show acg for d11221 so you know what error rate to expect for a given acg
+* test on entire hc-1
 * write a tool for line profiling a lot of funcs.
-
+* neuroshare
+* more info in xml

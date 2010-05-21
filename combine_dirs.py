@@ -1,4 +1,4 @@
-#!/usr/bin/env python -W ignore::Warning
+#!/usr/bin/env python
 
 from caton.core import combine_h5s
 from optparse import OptionParser

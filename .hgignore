@@ -16,3 +16,4 @@ temp
 *.orig
 *.pickle
 *.doctree
+caton/CEM_extensions.c
