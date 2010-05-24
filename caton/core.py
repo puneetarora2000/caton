@@ -7,6 +7,7 @@ import re, tables, json, os
 
 from tables import IsDescription,Int32Col,Float32Col,Int8Col
 import probe_stuff, output
+from output import get_pars_from_xml, get_pars_from_prompt, get_dat_pars
 from utils_graphs import contig_segs,complete_if_none
 from utils_misc import is_numerical, is_bool, find_file_with_ext, consumerize, indir, dump, to2d, tofloat32, basename_noext, memoized, get_padded, switch_ext, naive_maximize, inrange, dict_append, flatdist
 from CEM_extensions import bincount, class_means, class_covs, class_wts, sqnorm, subset_inds, connected_components
@@ -14,59 +15,43 @@ from features import get_features,compute_pcs
 from subset_sorting import cluster_withsubsets, spike_subsets
 from progressbar import ProgressBar,SimpleProgress,Bar,Percentage
 from interp_stuff import interp_around_peak
-from os.path import join
+from os.path import join,abspath,dirname
 
-##########################################################
-#### These are the parameters you might want to change ###
-##########################################################
+### Placeholders. These parameters are set in PARAMS.py
+T_BEFORE = T_AFTER = T_JOIN_CC = F_LOW = THRESH_SD = DETECT_POSITIVE = DTYPE = SEPARATE_CHANNELS_PCA = REGET_FEATURES = SORT_CLUS_BY_CHANNEL = FPC = BUTTER_ORDER = CHUNK_SIZE = CHUNK_OVERLAP = CHUNKS_FOR_THRESH = INTERP_METHOD = None
 
-T_BEFORE = .0005
-T_AFTER = .0005
-F_LOW = 500.
-THRESH_SD = 4.5
-DETECT_POSITIVE = True
+execfile(join(dirname(abspath(__file__)),"PARAMS.py"))
 
+### These parameters will be set by set_globals_samples
+SAMPLE_RATE = F_HIGH = None # sample rate (Hz), top of passband (Hz)
+S_BEFORE = S_AFTER = S_TOTAL = S_JOIN_CC = None
+
+PC_3s = None # feature vectors. set by load_features(). not necessarily 3 despite name.
+PC_df = None # set by get_features_allch()
+N_CH = None
+
+PARAMETERS = dict([(k,v) for k,v in globals().items() if (is_numerical(v) or is_bool(v))])
+
+def set_globals_samples(sample_rate):
+    """parameters are set in terms of time (seconds). this sets corresponding parameters in terms of sample rate. should be run before any processing"""
+    
+    global SAMPLE_RATE, F_HIGH
+    global S_BEFORE, S_AFTER, S_TOTAL, S_JOIN_CC
+
+    SAMPLE_RATE = sample_rate
+    F_HIGH = .95*SAMPLE_RATE/2
+    S_BEFORE = int(T_BEFORE*SAMPLE_RATE)
+    S_AFTER = int(T_AFTER*SAMPLE_RATE)
+    S_TOTAL = S_BEFORE + S_AFTER
+    S_JOIN_CC = T_JOIN_CC*SAMPLE_RATE
+    
 def print_params():
     print "PARAMETERS"
     print "----------"
     print "T_BEFORE: %s"%T_BEFORE
     print "T_AFTER: %s"%T_AFTER
     print "F_LOW (Hz): %s"%F_LOW
-    print "THRESH_SD: %s"%THRESH_SD
-
-###########################
-
-T_JOIN_CC = .0005
-SAMPLE_RATE = F_HIGH = None
-S_BEFORE = S_AFTER = S_TOTAL = S_SHIFTS = S_JOIN_CC = None
-PC_3s = None
-PC_df = None
-
-BUTTER_ORDER = 3
-FPC = 3
-CHUNK_SIZE = 20000    
-CHUNK_OVERLAP = 200
-N_BYTES = 2
-CHUNKS_FOR_THRESH = 5
-
-N_CH = None
-SEPARATE_CHANNELS_PCA = True
-REGET_FEATURES = False
-SORT_CLUS_BY_CHANNEL = True
-INTERP_METHOD= 'cubic'
-
-PARAMETERS = dict([(k,v) for k,v in globals().items() if (is_numerical(v) or is_bool(v))])
-
-def set_globals_samples(sample_rate):
-    """parameters are set in terms of time (seconds). this sets corresponding parameters in terms of sample rate. should be run before any processing"""
-
-    global SAMPLE_RATE, F_HIGH
-    global S_BEFORE, S_AFTER, S_TOTAL, S_JOIN_CC
-
-    SAMPLE_RATE = sample_rate
-    F_HIGH = .95*SAMPLE_RATE/2
-    S_BEFORE = int(T_BEFORE*SAMPLE_RATE); S_AFTER = int(T_AFTER*SAMPLE_RATE); S_TOTAL = S_BEFORE + S_AFTER
-    S_JOIN_CC = T_JOIN_CC*SAMPLE_RATE
+    print "THRESH_SD: %s"%THRESH_SD    
     
 ####################################
 ######## High-level scripts ########
@@ -75,8 +60,8 @@ def set_globals_samples(sample_rate):
 
 def classify_from_raw_data(JobType,DatFileName,ProbeFileName,max_spikes=None,output_dir=None,clu_dir=None):
     """Top level function that starts a data processing job. JobType is "batch" or "generalize". """
+    
     print_params()
-    OrigDir = os.getcwd()
     if not os.path.exists(DatFileName):
         raise Exception("Dat file %s does not exist"%DatFileName)
     DatFileName = os.path.abspath(DatFileName)
@@ -95,8 +80,8 @@ def classify_from_raw_data(JobType,DatFileName,ProbeFileName,max_spikes=None,out
         Channels_dat = [site.dat for site in probe_stuff.PROBE_SITES]
         if JobType == "batch":
             cluster_from_raw_data(basename,DatFileName,n_ch_dat,Channels_dat,probe_stuff.PROBE_GRAPH,max_spikes)
-        elif JobType == "generalize":
-            generalize_group_from_raw_data_splitprobe(basename,DatFileName,n_ch_dat,Channels_dat,probe_stuff.PROBE_GRAPH,max_spikes,clu_dir)                        
+        #elif JobType == "generalize":
+            #generalize_group_from_raw_data_splitprobe(basename,DatFileName,n_ch_dat,Channels_dat,probe_stuff.PROBE_GRAPH,max_spikes,clu_dir)                        
 
 #def spike_dtype():
   #  return np.dtype([("time",np.int32),("st",np.int8,N_CH),("wave",np.float32,(S_TOTAL,N_CH)),("fet",np.float32,(N_CH,FPC)),("clu",np.int32)])            
@@ -140,7 +125,7 @@ def cluster_from_raw_data(basename,DatFileName,n_ch_dat,Channels_dat,ChannelGrap
     if SEPARATE_CHANNELS_PCA:
         if REGET_FEATURES: reget_features(spike_table.cols.wave[:10000])
         else: load_features()
-        # workaround pytables bug
+        # work around pytables bug
         #spike_table.cols.fet[:] = [project_features(wave) for wave in spike_table.cols.wave]
         for row in spike_table: 
             row["fet"] = project_features(row["wave"])
@@ -169,39 +154,39 @@ def cluster_from_raw_data(basename,DatFileName,n_ch_dat,Channels_dat,ChannelGrap
 def good_inds(CluArr,TmArr):
     """Returns indices of all spikes that (1) do not appear to be a copy of another spike, and (2) are not noise (i.e., cluster 0)"""
     return [i_row for i_row in TmArr[:-1].argsort() if 
-            CluArr[i_row] != 0 # not noise
+            CluArr[i_row] != 0 # not in cluster with discarded spikes
             and not (
                 (TmArr[i_row+1]-TmArr[i_row] < S_JOIN_CC) and # same time
                 (CluArr[i_row+1] == CluArr[i_row]))] # same cluster
     
-def generalize_group_from_raw_data_splitprobe(basename,DatFileName,n_ch_dat,Channels_dat,ChannelGraph,max_spikes,clu_dir):
-    """Filter, detect, extract, using fet and clu files in clu_dir to generate model."""    
+#def generalize_group_from_raw_data_splitprobe(basename,DatFileName,n_ch_dat,Channels_dat,ChannelGraph,max_spikes,clu_dir):
+    #"""Filter, detect, extract, using fet and clu files in clu_dir to generate model."""    
     
-    SpkFileName = basename+'.spk.1'
-    OldDir = clu_dir
-    OldCluList = output.read_clu(find_file_with_ext(OldDir,'.clu.1'))
-    OldFetList = output.read_fet(find_file_with_ext(OldDir,'.fet.1'))[:,:(N_CH*FPC)]
-    STList = np.load(join(OldDir,"ST.npy"))
+    #SpkFileName = basename+'.spk.1'
+    #OldDir = clu_dir
+    #OldCluList = output.read_clu(find_file_with_ext(OldDir,'.clu.1'))
+    #OldFetList = output.read_fet(find_file_with_ext(OldDir,'.fet.1'))[:,:(N_CH*FPC)]
+    #STList = np.load(join(OldDir,"ST.npy"))
     
-    ### Detect spikes. For each detected spike, send it to spike writer, which writes it to a spk file.
-    ### List of times is small (memorywise) so we just store the list and write it later.
-    load_features()
-    SpkWriter = consumerize(spk_writer,"SpkStream",SpkFileName = SpkFileName)
-    SpkSorter = consumerize(generalize_spk_cuts,"NewSpkStream","NewSTStream",
-                            OldFetList = OldFetList,OldCluList = OldCluList,OldSTList = STList,ChannelGraph=ChannelGraph)
-    TmList,CluList,FetList,STList=[],[],[],[]
-    for Spk,PeakSample,ST in extract_spikes(DatFileName,n_ch_dat,Channels_dat,ChannelGraph,max_spikes):
-        Clu,Spk,Fet = SpkSorter.send(Spk,ST)
-        CluList.append(Clu)
-        SpkWriter.send(Spk)
-        FetList.append(Fet)
-        TmList.append(PeakSample)        
-        STList.append(ST)
-    SpkWriter.close()
-    SpkSorter.close()
+    #### Detect spikes. For each detected spike, send it to spike writer, which writes it to a spk file.
+    #### List of times is small (memorywise) so we just store the list and write it later.
+    #load_features()
+    #SpkWriter = consumerize(spk_writer,"SpkStream",SpkFileName = SpkFileName)
+    #SpkSorter = consumerize(generalize_spk_cuts,"NewSpkStream","NewSTStream",
+                            #OldFetList = OldFetList,OldCluList = OldCluList,OldSTList = STList,ChannelGraph=ChannelGraph)
+    #TmList,CluList,FetList,STList=[],[],[],[]
+    #for Spk,PeakSample,ST in extract_spikes(DatFileName,n_ch_dat,Channels_dat,ChannelGraph,max_spikes):
+        #Clu,Spk,Fet = SpkSorter.send(Spk,ST)
+        #CluList.append(Clu)
+        #SpkWriter.send(Spk)
+        #FetList.append(Fet)
+        #TmList.append(PeakSample)        
+        #STList.append(ST)
+    #SpkWriter.close()
+    #SpkSorter.close()
 
     ### Write all the files we need for klusters.
-    write_files(basename,CluList,TmList,to2d(np.array(FetList)),ChannelGraph)
+    #write_files(basename,CluList,TmList,to2d(np.array(FetList)),ChannelGraph)
     
 def combine_h5s(*dirs):
     "combine the data from a bunch of h5 files. Also make klusters files"    
@@ -288,7 +273,7 @@ def write_files(basename,CluList,TmList,FetList,ChannelGraph=None,STArr=None):
     if STArr is not None:
         np.save("ST.npy",STArr)
         
-    with open("params.json","w") as fd: json.dump(dict_append(PARAMETERS,dict(SAMPLE_RATE=str(SAMPLE_RATE),N_CH=N_CH)),fd)
+    #with open("params.json","w") as fd: json.dump(dict_append(PARAMETERS,dict(SAMPLE_RATE=str(SAMPLE_RATE),N_CH=N_CH)),fd)
 
 
 
@@ -313,7 +298,7 @@ def extract_intra_spikes(DatFileName,IntraChannel,output_dir=None,ExtraChannels=
     
         print("extracting intracellular spikes from %s"%DatFileName)
     
-        n_samples = num_samples(DatFileName,n_ch_dat,n_bytes=2)
+        n_samples = num_samples(DatFileName,n_ch_dat,n_bytes=np.nbytes[DTYPE])
         AllDataArr = np.memmap(DatFileName,dtype=np.int16,shape=(n_samples,n_ch_dat),mode='r')
     
         b,a = signal.butter(3,100./(SAMPLE_RATE/2),'high') #filter at 100 Hz
@@ -349,7 +334,6 @@ def extract_intra_spikes(DatFileName,IntraChannel,output_dir=None,ExtraChannels=
 
 
 def extract_spikes(DatFileName,n_ch_dat,ChannelsToUse,ChannelGraph,max_spikes=None):
-    DTYPE = infer_dtype(DatFileName)
     
     n_samples = num_samples(DatFileName,n_ch_dat)
     b,a = signal.butter(BUTTER_ORDER,(F_LOW/(SAMPLE_RATE/2),F_HIGH/(SAMPLE_RATE/2)),'pass')    
@@ -366,7 +350,7 @@ def extract_spikes(DatFileName,n_ch_dat,ChannelsToUse,ChannelGraph,max_spikes=No
         spike_count = 0
         for s_start,s_end,keep_start,keep_end in chunk_bounds(n_samples,CHUNK_SIZE,CHUNK_OVERLAP):
             DatChunk = np.fromfile(fd,dtype=DTYPE,count=(s_end-s_start)*n_ch_dat).reshape(s_end-s_start,n_ch_dat)[:,ChannelsToUse]
-            fd.seek(fd.tell()-CHUNK_OVERLAP*n_ch_dat*N_BYTES)
+            fd.seek(fd.tell()-CHUNK_OVERLAP*n_ch_dat*np.nbytes[DTYPE])
             FilteredChunk = filtfilt2d(b,a,DatChunk.astype(np.float32))    
             BinaryChunk = (FilteredChunk < -Threshold).astype(np.int8) if DETECT_POSITIVE else np.abs(FilteredChunk < -Threshold).astype(np.int8)
             IndListsChunk = connected_components(BinaryChunk,complete_if_none(ChannelGraph,N_CH),S_JOIN_CC)              
@@ -401,21 +385,21 @@ def chunk_bounds(n_samples,chunk_size,overlap):
     yield s_start,s_end,keep_start,keep_end   
 
 
-def generalize_spk_cuts(OldFetList,OldCluList,OldSTList,NewSpkStream,NewSTStream,ChannelGraph):
+#def generalize_spk_cuts(OldFetList,OldCluList,OldSTList,NewSpkStream,NewSTStream,ChannelGraph):
 
-    Mean_mf,Weight_m,Cov_mff = get_cluster_params(np.array(OldFetList)[:,:(N_CH*FPC)],OldCluList,ChannelGraph)
-    Cutoff_m = find_cutoffs(reshape_sep_chans(np.array(OldFetList)),np.array(OldCluList),np.array(OldSTList))
-    print("Cutoffs: %s"%Cutoff_m)
+    #Mean_mf,Weight_m,Cov_mff = get_cluster_params(np.array(OldFetList)[:,:(N_CH*FPC)],OldCluList,ChannelGraph)
+    #Cutoff_m = find_cutoffs(reshape_sep_chans(np.array(OldFetList)),np.array(OldCluList),np.array(OldSTList))
+    #print("Cutoffs: %s"%Cutoff_m)
     
-    Fet_nc3 = it.imap(project_features,NewSpkStream)
-    global ChSubsets # global because subset_candidate_inds is memoized and just uses ST_c
-    ChSubsets = probe_stuff.ch_subsets()    
-    GoodCluClassifier = consumerize(best_good_clus,"Fet_nc3","ST_nc",Mean_mf=Mean_mf,Weight_m=Weight_m,Cov_mff = Cov_mff,ChSubsets=ChSubsets)
-    for Spk,ST in it.izip(NewSpkStream,NewSTStream):
-        fet_c3 = project_features(Spk)
-        Clu,LogL = GoodCluClassifier.send(fet_c3,ST)
-        if LogL < Cutoff_m[Clu]: Clu = 0            
-        yield Clu,Spk,fet_c3
+    #Fet_nc3 = it.imap(project_features,NewSpkStream)
+    #global ChSubsets # global because subset_candidate_inds is memoized and just uses ST_c
+    #ChSubsets = probe_stuff.ch_subsets()    
+    #GoodCluClassifier = consumerize(best_good_clus,"Fet_nc3","ST_nc",Mean_mf=Mean_mf,Weight_m=Weight_m,Cov_mff = Cov_mff,ChSubsets=ChSubsets)
+    #for Spk,ST in it.izip(NewSpkStream,NewSTStream):
+        #fet_c3 = project_features(Spk)
+        #Clu,LogL = GoodCluClassifier.send(fet_c3,ST)
+        #if LogL < Cutoff_m[Clu]: Clu = 0            
+        #yield Clu,Spk,fet_c3
 
 def extract_wave_simple(IndList,FilteredArr):    
     IndArr = np.array(IndList,dtype=np.int32)
@@ -450,134 +434,106 @@ def filtfilt2d(b,a,x):
 ####### Percentile stuff for generalize ##########
 ##################################################
 
-def find_cutoffs(Fet_nc3,Clu_n,ST_nc):
-    """Return the likelihood cutoff for each cluster. Each incoming point is matched to
-    the most likely cluster. If the likelihood is lower than this cutoff, it is classified
-    as a noise point instead."""
-    global ChSubsets
-    ChSubsets = probe_stuff.ch_subsets()
+#def find_cutoffs(Fet_nc3,Clu_n,ST_nc):
+    #"""Return the likelihood cutoff for each cluster. Each incoming point is matched to
+    #the most likely cluster. If the likelihood is lower than this cutoff, it is classified
+    #as a noise point instead."""
+    #global ChSubsets
+    #ChSubsets = probe_stuff.ch_subsets()
     
-    # get cluster parameters needed for likelihood
-    GoodInds = np.flatnonzero(Clu_n != 0)
-    Mean_mf,Weight_m,Cov_mff = get_cluster_params(
-        to2d(Fet_nc3[GoodInds]),
-        Clu_n[GoodInds],
-        probe_stuff.PROBE_GRAPH)
+    ## get cluster parameters needed for likelihood
+    #GoodInds = np.flatnonzero(Clu_n != 0)
+    #Mean_mf,Weight_m,Cov_mff = get_cluster_params(
+        #to2d(Fet_nc3[GoodInds]),
+        #Clu_n[GoodInds],
+        #probe_stuff.PROBE_GRAPH)
     
-    # compute likelihood of every point in every cluster    
-    GoodClu_n,LogL_n = best_good_clus_batch(Fet_nc3,ST_nc,Mean_mf, Weight_m,Cov_mff,ChSubsets)    
-    M = Mean_mf.shape[0]
-    IndList_m = subset_inds(GoodClu_n,M=M)
-    Cutoff_m = np.zeros(M,dtype=np.float32)    
-    for m in xrange(1,M):
-        GoodInds_in_m = np.array(IndList_m[m],dtype=np.int32)[Clu_n[IndList_m[m]] != 0]
-        BadInds_in_m = np.array(IndList_m[m],dtype=np.int32)[Clu_n[IndList_m[m]] == 0]
+    ## compute likelihood of every point in every cluster    
+    #GoodClu_n,LogL_n = best_good_clus_batch(Fet_nc3,ST_nc,Mean_mf, Weight_m,Cov_mff,ChSubsets)    
+    #M = Mean_mf.shape[0]
+    #IndList_m = subset_inds(GoodClu_n,M=M)
+    #Cutoff_m = np.zeros(M,dtype=np.float32)    
+    #for m in xrange(1,M):
+        #GoodInds_in_m = np.array(IndList_m[m],dtype=np.int32)[Clu_n[IndList_m[m]] != 0]
+        #BadInds_in_m = np.array(IndList_m[m],dtype=np.int32)[Clu_n[IndList_m[m]] == 0]
         
-        if len(BadInds_in_m) > 0:
-            GoodDist = bootstrap_rv(LogL_n[GoodInds_in_m])
-            BadDist = bootstrap_rv(LogL_n[BadInds_in_m])
-            Cutoff_m[m] = naive_maximize(LossFunction,mquantiles(LogL_n[GoodInds_in_m],prob=np.arange(0,.25,.005)),func_args=dict(GoodDist=GoodDist,BadDist=BadDist),MinimizeInstead=True)                      
-        else:
-            Cutoff_m[m] = -np.inf
+        #if len(BadInds_in_m) > 0:
+            #GoodDist = bootstrap_rv(LogL_n[GoodInds_in_m])
+            #BadDist = bootstrap_rv(LogL_n[BadInds_in_m])
+            #Cutoff_m[m] = naive_maximize(LossFunction,mquantiles(LogL_n[GoodInds_in_m],prob=np.arange(0,.25,.005)),func_args=dict(GoodDist=GoodDist,BadDist=BadDist),MinimizeInstead=True)                      
+        #else:
+            #Cutoff_m[m] = -np.inf
             
-    del ChSubsets
-    return Cutoff_m
+    #del ChSubsets
+    #return Cutoff_m
     
-def LossFunction(cutoff,GoodDist,BadDist):
-    false_pos = 1-BadDist.cdf(cutoff)
-    false_neg = GoodDist.cdf(cutoff)
-    return false_pos+false_neg
+#def LossFunction(cutoff,GoodDist,BadDist):
+    #false_pos = 1-BadDist.cdf(cutoff)
+    #false_neg = GoodDist.cdf(cutoff)
+    #return false_pos+false_neg
 
-def bootstrap_rv(values):
-    return rv_discrete(name="bootstrap_dist",values=(values,flatdist(values.size)))
+#def bootstrap_rv(values):
+    #return rv_discrete(name="bootstrap_dist",values=(values,flatdist(values.size)))
     
-def select_highamp_group(Fet_c3,ST_c):
-    Amp_c = Fet_c3[:,0]**2
-    SubsetCandInds = subset_cand_inds(ST_c)    
-    Subset_amp = [Amp_c[ChSubsets[i_subset]].sum() for i_subset in SubsetCandInds]
-    return SubsetCandInds[np.argmax(Subset_amp)]
+#def select_highamp_group(Fet_c3,ST_c):
+    #Amp_c = Fet_c3[:,0]**2
+    #SubsetCandInds = subset_cand_inds(ST_c)    
+    #Subset_amp = [Amp_c[ChSubsets[i_subset]].sum() for i_subset in SubsetCandInds]
+    #return SubsetCandInds[np.argmax(Subset_amp)]
 
-@memoized
-def subset_cand_inds(ST_c):
-    NumST = [ST_c[subset].sum() for subset in ChSubsets]
-    max_num = max(NumST)
-    return np.flatnonzero(NumST == max_num)
+#@memoized
+#def subset_cand_inds(ST_c):
+    #NumST = [ST_c[subset].sum() for subset in ChSubsets]
+    #max_num = max(NumST)
+    #return np.flatnonzero(NumST == max_num)
 
-def asarray(mat):
-    return mat.toarray() if mat.__module__ == 'scipy.sparse.csr' else mat.A
+#def asarray(mat):
+    #return mat.toarray() if mat.__module__ == 'scipy.sparse.csr' else mat.A
 
-def best_good_clus(Fet_nc3,ST_nc, Mean_mf, Weight_m, Cov_mff,ChSubsets):
-    C = N_CH; M = Mean_mf.shape[0]
+#def best_good_clus(Fet_nc3,ST_nc, Mean_mf, Weight_m, Cov_mff,ChSubsets):
+    #C = N_CH; M = Mean_mf.shape[0]
     
-    Mean_nc3 = Mean_mf.reshape(M,C,FPC)
+    #Mean_nc3 = Mean_mf.reshape(M,C,FPC)
                 
-    Cov_mc3c3 = [Cov_mff[m].reshape((C,FPC,C,FPC)) for m in xrange(M)]
-    Mean_slices = [to2d(Mean_nc3[:,channels,:]) for channels in ChSubsets]
-    InvSqrtCov_slices = [[np.asmatrix(np.linalg.inv(Cov_mc3c3[m][np.ix_(channels,range(FPC),channels,range(FPC))].reshape(FPC*len(channels),FPC*len(channels)))) for m in xrange(M)] for channels in ChSubsets]
+    #Cov_mc3c3 = [Cov_mff[m].reshape((C,FPC,C,FPC)) for m in xrange(M)]
+    #Mean_slices = [to2d(Mean_nc3[:,channels,:]) for channels in ChSubsets]
+    #InvSqrtCov_slices = [[np.asmatrix(np.linalg.inv(Cov_mc3c3[m][np.ix_(channels,range(FPC),channels,range(FPC))].reshape(FPC*len(channels),FPC*len(channels)))) for m in xrange(M)] for channels in ChSubsets]
 
-    for fet_c3,st_c in it.izip(Fet_nc3,ST_nc):
-        i_group = select_highamp_group(fet_c3,st_c)
-        channels = ChSubsets[i_group]
-        LogP_nm = compute_LogP(fet_c3[channels,:].reshape(1,-1),Mean_slices[i_group],Weight_m,InvSqrtCov_slices[i_group])
-        yield LogP_nm.argmax(),LogP_nm.max()
+    #for fet_c3,st_c in it.izip(Fet_nc3,ST_nc):
+        #i_group = select_highamp_group(fet_c3,st_c)
+        #channels = ChSubsets[i_group]
+        #LogP_nm = compute_LogP(fet_c3[channels,:].reshape(1,-1),Mean_slices[i_group],Weight_m,InvSqrtCov_slices[i_group])
+        #yield LogP_nm.argmax(),LogP_nm.max()
         
         
-def best_good_clus_batch(Fet_nc3,ST_nc,Mean_mf, Weight_m,InvSqrtCov_mff,ChSubsets):
-    """
-    Returns
-    ------
-    BestGoodClu_n: m that maximizes LogP_nm on selected channel subset
-    LogL_n: value of LogP at maximum"""
-    BestGoodClu_n,LogL_n = zip(*list(best_good_clus(Fet_nc3,ST_nc,Mean_mf, Weight_m,InvSqrtCov_mff,ChSubsets)))
-    return np.array(BestGoodClu_n),np.array(LogL_n)
+#def best_good_clus_batch(Fet_nc3,ST_nc,Mean_mf, Weight_m,InvSqrtCov_mff,ChSubsets):
+    #"""
+    #Returns
+    #------
+    #BestGoodClu_n: m that maximizes LogP_nm on selected channel subset
+    #LogL_n: value of LogP at maximum"""
+    #BestGoodClu_n,LogL_n = zip(*list(best_good_clus(Fet_nc3,ST_nc,Mean_mf, Weight_m,InvSqrtCov_mff,ChSubsets)))
+    #return np.array(BestGoodClu_n),np.array(LogL_n)
 
 
 ###########################
 ############# I/O #########
 ###########################
 
-def infer_dtype(DatFileName):
-    dtypes = [np.dtype("<i2"),np.dtype(">i2")]
-    avg_mags = map(lambda dtype:
-                  np.log(1+np.abs(np.fromfile(DatFileName,dtype=dtype,count=100)).sum()),
-                  dtypes)
-    return dtypes[np.argmin(avg_mags)]
-    
-                  
-                  
-def get_pars_from_xml(xmlpath):
-    assert os.path.exists(xmlpath)
-    root = ElementTree().parse(xmlpath)
-    acquisitionSystem = root.find('acquisitionSystem')
-    n_channels = int(acquisitionSystem.find('nChannels').text)
-    sample_rate = np.float32(acquisitionSystem.find('samplingRate').text)
-    return n_channels,sample_rate
-    
-    
-def get_pars_from_prompt():
-    print("Could not find xml file with parameters.")
-    n_ch_dat = input("How many channels in .dat file?\t")
-    sample_rate = input("What is the sample rate?\t")
-    return n_ch_dat,sample_rate
-    
+#def infer_dtype(DatFileName):
+    #dtypes = [np.dtype("<i2"),np.dtype(">i2")]
+    #avg_mags = map(lambda dtype:
+                  #np.log(1+np.abs(np.fromfile(DatFileName,dtype=dtype,count=100)).sum()),
+                  #dtypes)
+    #return dtypes[np.argmin(avg_mags)]
 
 
-def get_dat_pars(DatFileName):
-    xmlpath = switch_ext(DatFileName,'xml')
-    if os.path.exists(xmlpath):
-        n_ch_dat,sample_rate = get_pars_from_xml(xmlpath)
-    else:
-        n_ch_dat,sample_rate = get_pars_from_prompt()
-        output.write_xml(n_ch_dat,0,0,sample_rate,xmlpath)
-        print("writing parameters in xml file %s"%xmlpath)
-    return n_ch_dat,sample_rate
-
-def spk_writer(SpkStream,SpkFileName):
-    with open(SpkFileName,'w') as fd:        
-        while True:
-            spk = SpkStream.next()
-            spk.astype(np.int16).tofile(fd)
-            yield
+#def spk_writer(SpkStream,SpkFileName):
+    #with open(SpkFileName,'w') as fd:        
+        #while True:
+            #spk = SpkStream.next()
+            #spk.astype(np.int16).tofile(fd)
+            #yield
 
         
 
@@ -647,37 +603,37 @@ def processed_basename(DatFileName,ProbeFileName,JobType):
 def intra_basename(DatFileName):
     return "%s_%s"%(basename_noext(DatFileName),"intracellular")                
     
-def get_cluster_params(FetList,CluList,ChannelGraph):
-    FetArr = np.array(FetList,dtype=np.float32)
-    CluArr = np.array(CluList,dtype=np.int32)
-    N,F = FetArr.shape
-    M = CluArr.max()+1
+#def get_cluster_params(FetList,CluList,ChannelGraph):
+    #FetArr = np.array(FetList,dtype=np.float32)
+    #CluArr = np.array(CluList,dtype=np.int32)
+    #N,F = FetArr.shape
+    #M = CluArr.max()+1
     
-    Mean_mf, Cov_mff, Weight_m = m_step(CluArr,FetArr,F,M,N)
-    return Mean_mf,Weight_m,Cov_mff    
+    #Mean_mf, Cov_mff, Weight_m = m_step(CluArr,FetArr,F,M,N)
+    #return Mean_mf,Weight_m,Cov_mff    
 
-def m_step(Class_n,X_nf,F,M,N):
-    Mean_mf = class_means(X_nf,Class_n,M)
-    Cov_mff = class_covs(X_nf,Mean_mf,Class_n,M)
-    Weight_m = class_wts(Class_n,M)
-    return Mean_mf, Cov_mff, Weight_m
+#def m_step(Class_n,X_nf,F,M,N):
+    #Mean_mf = class_means(X_nf,Class_n,M)
+    #Cov_mff = class_covs(X_nf,Mean_mf,Class_n,M)
+    #Weight_m = class_wts(Class_n,M)
+    #return Mean_mf, Cov_mff, Weight_m
 
-def compute_LogP(X_nf, Mean_mf, Weight_m, InvSqrtCov_mff):
-    N = X_nf.shape[0]
-    M,F = Mean_mf.shape
+#def compute_LogP(X_nf, Mean_mf, Weight_m, InvSqrtCov_mff):
+    #N = X_nf.shape[0]
+    #M,F = Mean_mf.shape
     
-    LogP = np.zeros((N,M),dtype=np.float32)
-    for m in xrange(M):
-        Vec2Mean_nf = Mean_mf[m] - X_nf
-        LogInvSqrtDet = np.log(InvSqrtCov_mff[m].diagonal()).sum()        
-        Mahal_n = sqnorm(InvSqrtCov_mff[m]*Vec2Mean_nf.T)
-        LogP[:,m] = - Mahal_n/2 + LogInvSqrtDet + np.log(Weight_m[m]) - np.log(2*np.pi)*F/2 ###+ logrootdet because we're using the inverse
-    return LogP     
+    #LogP = np.zeros((N,M),dtype=np.float32)
+    #for m in xrange(M):
+        #Vec2Mean_nf = Mean_mf[m] - X_nf
+        #LogInvSqrtDet = np.log(InvSqrtCov_mff[m].diagonal()).sum()        
+        #Mahal_n = sqnorm(InvSqrtCov_mff[m]*Vec2Mean_nf.T)
+        #LogP[:,m] = - Mahal_n/2 + LogInvSqrtDet + np.log(Weight_m[m]) - np.log(2*np.pi)*F/2 ###+ logrootdet because we're using the inverse
+    #return LogP     
 
 
 
-def reshape_sep_chans(Arr_ijkf):
-    return Arr_ijkf.reshape(Arr_ijkf.shape[:-1] + (Arr_ijkf.shape[-1]/FPC,FPC))
+#def reshape_sep_chans(Arr_ijkf):
+    #return Arr_ijkf.reshape(Arr_ijkf.shape[:-1] + (Arr_ijkf.shape[-1]/FPC,FPC))
     
 def num_samples(FileName,n_ch_dat,n_bytes=2):
     total_bytes = os.path.getsize(FileName)

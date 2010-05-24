@@ -7,8 +7,6 @@ from utils_misc import time_fun
 import probe_stuff
 from os.path import join
 
-#from merging_display import *
-
 DEBUG = False
 MINCLUSTERS = 3
 MAXCLUSTERS = 14
@@ -26,8 +24,10 @@ def clu_mag(Mean_mf):
     return (Mean_mf**2).sum(axis=1)
 
 
-def cluster_withsubsets(spike_table):
+def cluster_withsubsets(spike_table,reorder_clus=True):
     "TODO: write docstring"
+    
+    if reorder_clus: print "Cluster reordering not implemented!"
     ST_nc = np.bool8(spike_table.cols.st[:])
     Fet_nc3 = spike_table.cols.fet[:]    
     

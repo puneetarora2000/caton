@@ -14,7 +14,7 @@ def cmd_line_help():
 def ch_colormaps():
     for datfile,probefile in [("marn2dec13/marn2dec13.002-5/marn2dec13.002-5.dat","aux/mar32_before.probe"),
                               ("marn2dec13/marn2dec13.002-5/marn2dec13.002-5.dat","aux/mar32_after.probe")]:
-        os.system("../check_crosstalk.py /media/disk/Data/%s -p %s"%(datfile,probefile)+outgd)
+        os.system("../check_crosstalk.py /home/joschu/Data/mariano/%s -p %s"%(datfile,probefile)+outgd)
 
 def features():
     os.system("../plot_features.py -s" + outgd)        

@@ -1,10 +1,14 @@
 Urgent
 ========
 
+* sort more hc1 data to get better features
+* reorder clusters
+* add interp none option
+* profile
 * document code
-* update links
+* update links and docs
 * document cluster merging procedure and diagnostics
-* allow users to select parameters
+* test and document parameter customization
 
 Fixed but untested
 =====================
