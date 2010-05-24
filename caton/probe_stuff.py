@@ -3,7 +3,8 @@ import numpy as np, matplotlib.pyplot as plt, matplotlib.delaunay as sd
 from string import strip
 from utils_misc import index_safe, max2min, switch_ext
 from utils_graphs import edges, nodes, complete_graph, add_edge, add_node
-import re,string, matplotlib, os
+import re,string, matplotlib
+from os.path import abspath, join, dirname, basename
 from collections import namedtuple
 
 
@@ -50,9 +51,10 @@ def load_probe(ProbeFileName):
         return line if ind == -1 else line[:ind]
     
     with open(ProbeFileName,'r') as ProbeFile:
-        Lines = ProbeFile.readlines()
+        print("Reading probe file: %s"%abspath(ProbeFileName))
+        OrigLines = ProbeFile.readlines()
 
-    Lines = map(remove_comment,Lines) #remove comments from lines
+    Lines = map(remove_comment,OrigLines) #remove comments from lines
     Lines = map(strip,Lines) # strip leading and traiing whitespace
     Lines = filter(None,Lines) # get rid of empty lines
     
@@ -69,8 +71,8 @@ def load_probe(ProbeFileName):
     elif form2d.match(SiteLines[0]): 
         reader = read_form2d
         PROBE_DIM = 2
-    elif Lines[0] == "MANUAL": 
-        load_probe_manual(SiteLines[1:])
+    #elif Lines[0] == "MANUAL": 
+        #load_probe_manual(SiteLines[1:])
         return
     else: 
         raise Exception("%s is not of valid form."%SiteLines[0])
@@ -79,16 +81,23 @@ def load_probe(ProbeFileName):
     N_SITES = len(PROBE_SITES)
 
     if edge_ind is None and group_ind is None:
+        print("You didn't specify custom edges and groups in probe file, so I'm using defaults for %i-dimensional probe. If you want to customize edges and groups, start by copying and pasting the following text into your probe file."%PROBE_DIM)
+        print("-----------------------")
         PROBE_GRAPH = make_graph()
         SORT_GROUPS = ch_subsets()
         
-        with open(ProbeFileName,'a') as ProbeFile:
-            ProbeFile.write("\nEDGES\n")
-            ProbeFile.writelines(string.join(get_edge_lines(),"\n"))
-            ProbeFile.write("\nGROUPS\n")
-            ProbeFile.writelines(string.join(get_group_lines(),"\n"))            
+        print("".join(OrigLines))
+        print("EDGES")
+        print(string.join(get_edge_lines(),"\n"))
+        print("GROUPS")
+        print(string.join(get_group_lines(),"\n"))            
+        print("-----------------------")        
+    elif edge_ind is None or group_ind is None: raise Exception("Either specify both GROUPS and EDGES or neither.")
     else:
-        if edge_ind is None or group_ind is None: raise Exception("Either specify both GROUPS and EDGES or neither.")
+        print("Loading custom edges and groups from your probe file:")
+        print("-----------------------")
+        print("".join(OrigLines))        
+        print("-----------------------")
         PROBE_GRAPH = edge_lines_to_graph(Lines[(edge_ind+1):group_ind])
         SORT_GROUPS = group_lines_to_groups(Lines[(group_ind+1):])
 
@@ -117,8 +126,8 @@ def ch_subsets():
     if PROBE_DIM == 2:
         ChLocs = np.array([(site.x,site.y) for site in PROBE_SITES])
         return ch_subsets_2d(ChLocs)
-    if PROBE_DIM == "manual":
-        return SORT_GROUPS
+    #if PROBE_DIM == "manual":
+        #return SORT_GROUPS
 
 
 def ch_subsets_0d():
@@ -142,34 +151,34 @@ def ch_subsets_2d(ChLocsArr):
         
         
         
-def load_probe_manual(Lines):
-    global PROBE_SITES,PROBE_DIM,N_SITES,SORT_GROUPS,PROBE_GRAPH
-    PROBE_SITES = []
-    PROBE_DIM = "manual"
-    PROBE_GRAPH = {}
-    SORT_GROUPS = []
+#def load_probe_manual(Lines):
+    #global PROBE_SITES,PROBE_DIM,N_SITES,SORT_GROUPS,PROBE_GRAPH
+    #PROBE_SITES = []
+    #PROBE_DIM = "manual"
+    #PROBE_GRAPH = {}
+    #SORT_GROUPS = []
     
-    for i_line,line in enumerate(Lines):
-        if line == "GROUPS": break
+    #for i_line,line in enumerate(Lines):
+        #if line == "GROUPS": break
         
-    site_lines = Lines[:i_line]
-    group_lines = Lines[(i_line+1):]
-    print site_lines
-    print group_lines
-    names = [line.split()[0] for line in site_lines]
+    #site_lines = Lines[:i_line]
+    #group_lines = Lines[(i_line+1):]
+    #print site_lines
+    #print group_lines
+    #names = [line.split()[0] for line in site_lines]
     
-    name2ind = lambda name: names.index(name)
+    #name2ind = lambda name: names.index(name)
     
-    for i_line,line in enumerate(site_lines):
-        words = line.split()
-        PROBE_SITES.append(Site(words[0],int(words[1]),None,None))
-        add_node(PROBE_GRAPH,name2ind(words[0]))
-        for neighbor in words[2:]:
-            add_edge(PROBE_GRAPH,name2ind(words[0]),name2ind(neighbor))
-    N_SITES = len(PROBE_SITES)
+    #for i_line,line in enumerate(site_lines):
+        #words = line.split()
+        #PROBE_SITES.append(Site(words[0],int(words[1]),None,None))
+        #add_node(PROBE_GRAPH,name2ind(words[0]))
+        #for neighbor in words[2:]:
+            #add_edge(PROBE_GRAPH,name2ind(words[0]),name2ind(neighbor))
+    #N_SITES = len(PROBE_SITES)
     
-    for line in group_lines:
-        SORT_GROUPS.append(map(lambda name: name2ind(name),line.split()))
+    #for line in group_lines:
+        #SORT_GROUPS.append(map(lambda name: name2ind(name),line.split()))
     
 def make_graph():
     if PROBE_DIM == 0:
@@ -214,8 +223,8 @@ def plot_probe(ProbeFileName,output_dir=None):
         ax.text(x[ind_node],y[ind_node],site.name,color='r')
             
     
-    img_filename = os.path.join(output_dir or os.path.dirname(ProbeFileName),switch_ext(os.path.basename(ProbeFileName),"png"))
-    print("Saving figure as %s"%os.path.abspath(img_filename))
+    img_filename = join(output_dir or dirname(ProbeFileName),switch_ext(basename(ProbeFileName),"png"))
+    print("Saving figure as %s"%abspath(img_filename))
     plt.savefig(img_filename)
 
     
@@ -261,13 +270,3 @@ def path_graph(Locs):
         for src,targ in zip(SortInds[1:],SortInds[:-1]):
             add_edge(G,src,targ)
         return G
-    
-    
-    
-    
-if __name__ == '__main__':
-    #plot_probe(groups2names_and_locs("/home/joschu/Code/caton/probes/simal.probe"))
-    #plot_probe("/home/joschu/Data/32chan/extra/fake32.probe",None,None)
-    #plot_probe("/home/joschu/Code/caton/probes/mar16.probe")
-    load_probe("../probes/manual_probe.probe")
-    print PROBE_GRAPH, PROBE_SITES, SORT_GROUPS

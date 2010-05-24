@@ -187,7 +187,7 @@ def get_padded(Arr,Start,End):
 
 def naive_maximize(func,domain,func_args={},MinimizeInstead=False):
     values = mymap(func,seqs=(domain,),func_args=func_args)    
-    return domain[np.argmin(values) if MinimizeInstead else np.argmax[values]]
+    return domain[np.argmin(values) if MinimizeInstead else np.argmax(values)]
 
 ####################
 #### Li and Stri ###
@@ -282,12 +282,8 @@ def find_file_with_ext(directory,ext,ex_if_not_found = False):
             return None
 
 def splitext(filename):
-    name,ext = os.path.splitext(filename)
-    if re.match("\d+",ext):
-        name,ext1 = os.path.splitext(name)
-        return (name,ext1+ext)
-    else:
-        return (name,ext)
+    m = re.match(r"(.+)\.(\w+\.\d+)",filename)
+    return m.groups() if m is not None else os.path.splitext(filename)
     
     
         

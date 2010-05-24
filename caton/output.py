@@ -1,5 +1,6 @@
 import numpy as np
-import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import ElementTree,Element,SubElement
+from utils_misc import switch_ext
 import os.path
 
 
@@ -76,29 +77,29 @@ def read_spk(filepath,n_ch,n_s):
     
 def write_xml(n_ch,n_samp,n_feat,sample_rate,filepath):
     """makes an xml parameters file so we can look at the data in klusters"""
-    parameters = ET.Element('parameters')
-    acquisitionSystem = ET.SubElement(parameters,'acquisitionSystem')
-    ET.SubElement(acquisitionSystem,'nBits').text = '16'
-    ET.SubElement(acquisitionSystem,'nChannels').text = str(n_ch)
-    ET.SubElement(acquisitionSystem,'samplingRate').text = str(int(sample_rate))
-    ET.SubElement(acquisitionSystem,'voltageRange').text = '20'
-    ET.SubElement(acquisitionSystem,'amplification').text = "1000"
-    ET.SubElement(acquisitionSystem,'offset').text = "2048"
+    parameters = Element('parameters')
+    acquisitionSystem = SubElement(parameters,'acquisitionSystem')
+    SubElement(acquisitionSystem,'nBits').text = '16'
+    SubElement(acquisitionSystem,'nChannels').text = str(n_ch)
+    SubElement(acquisitionSystem,'samplingRate').text = str(int(sample_rate))
+    SubElement(acquisitionSystem,'voltageRange').text = '20'
+    SubElement(acquisitionSystem,'amplification').text = "1000"
+    SubElement(acquisitionSystem,'offset').text = "2048"
 
-    channels = ET.SubElement(ET.SubElement(ET.SubElement(parameters,'channelGroups'),'group'),'channels')
+    channels = SubElement(SubElement(SubElement(parameters,'channelGroups'),'group'),'channels')
     for i_ch in range(n_ch):
-        ET.SubElement(channels,'channel').text=str(i_ch)
+        SubElement(channels,'channel').text=str(i_ch)
     
-    group = ET.SubElement(ET.SubElement(ET.SubElement(parameters,'spikeDetection'),'channelGroups'),'group')
-    channels = ET.SubElement(group,'channels')
+    group = SubElement(SubElement(SubElement(parameters,'spikeDetection'),'channelGroups'),'group')
+    channels = SubElement(group,'channels')
     for i_ch in range(n_ch):
-        ET.SubElement(channels,'channel').text=str(i_ch)
-    ET.SubElement(group,'nSamples').text = str(n_samp)
-    ET.SubElement(group,'peakSampleIndex').text = str(n_samp//2)
-    ET.SubElement(group,'nFeatures').text = str(n_feat)
+        SubElement(channels,'channel').text=str(i_ch)
+    SubElement(group,'nSamples').text = str(n_samp)
+    SubElement(group,'peakSampleIndex').text = str(n_samp//2)
+    SubElement(group,'nFeatures').text = str(n_feat)
     
     indent_xml(parameters)
-    ET.ElementTree(parameters).write(filepath)    
+    ElementTree(parameters).write(filepath)    
     
 
 def indent_xml(elem, level=0):
@@ -118,3 +119,47 @@ def indent_xml(elem, level=0):
     else:
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
+            
+            
+def get_pars_from_xml(xmlpath):
+    assert os.path.exists(xmlpath)
+    root = ElementTree().parse(xmlpath)
+    acquisitionSystem = root.find('acquisitionSystem')
+    n_channels = int(acquisitionSystem.find('nChannels').text)
+    sample_rate = np.float32(acquisitionSystem.find('samplingRate').text)
+    return n_channels,sample_rate
+
+def get_pars_from_xml2(xmlpath):
+    root = ElementTree().parse(xmlpath)
+    n_channels = int(search_etree(root,"nChannels"))
+    sample_rate = float(search_etree(root,"samplingRate"))
+    s_total = int(search_etree(root,"nSamples"))
+    s_before = int(search_etree(root,"peakSampleIndex"))
+    s_after = s_total-s_before
+    return n_channels,sample_rate,s_before,s_after
+
+def walk_etree(root):
+    yield root.tag,root.text
+    for child in root.getchildren():
+        for tag,text in walk_etree(child):
+            yield tag,text
+    
+def search_etree(root,the_tag):
+    for tag,text in walk_etree(root):
+        if tag==the_tag: return text
+
+def get_dat_pars(DatFileName):
+    xmlpath = switch_ext(DatFileName,'xml')
+    if os.path.exists(xmlpath):
+        n_ch_dat,sample_rate = get_pars_from_xml(xmlpath)
+    else:
+        n_ch_dat,sample_rate = get_pars_from_prompt()
+        write_xml(n_ch_dat,0,0,sample_rate,xmlpath)
+        print("writing parameters in xml file %s"%xmlpath)
+    return n_ch_dat,sample_rate
+                                          
+def get_pars_from_prompt():
+    print("Could not find xml file with parameters.")
+    n_ch_dat = input("How many channels in .dat file?\t")
+    sample_rate = input("What is the sample rate?\t")
+    return n_ch_dat,sample_rate

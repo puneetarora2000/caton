@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.signal import cspline1d,cspline1d_eval
+from scipy.interpolate import interp1d
 
 def abc(x_3,y_3):
     M = np.vstack((x_3**2,x_3,np.ones_like(x_3)))
@@ -13,15 +14,14 @@ def interp_around(X_sc,s_fracpeak,s_before,s_after,kind='cubic'):
     n_s = s_before+s_after
     Out_sc = np.empty((n_s,n_c),dtype=np.float32)
     for i_c in xrange(n_c):
-        #Out_sc[:,i_c] = np.interp(np.arange(s_fracpeak - s_before,s_fracpeak+s_after,type=np.float32),
-        #                          np.arange(X_sc.shape[0]),X_sc[:,i_c])
         if kind == 'cubic':
             coeffs = cspline1d(X_sc[:,i_c])
             Out_sc[:,i_c] = cspline1d_eval(coeffs,
                                        newx=np.arange(s_fracpeak - s_before,s_fracpeak+s_after,dtype=np.float32))
-        else:
+        elif kind == "linear":
             Out_sc[:,i_c] = interp1d(np.arange(X_sc.shape[0]),X_sc[:,i_c],
                                      bounds_error=True,kind=kind)(np.arange(s_fracpeak - s_before,s_fracpeak+s_after,dtype=np.float32))
+        else: raise Exception("kind must be 'linear' or 'cubic'")
     return Out_sc
 
 def interp_around_peak(X_sc,i_intpeak,c_peak,s_before,s_after,pad=False,kind='cubic'):    

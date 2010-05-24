@@ -1,8 +1,7 @@
 from __future__ import with_statement
 import os,sys,numpy
 
-scripts = ["check_crosstalk.py","cluster_from_raw_data.py","extract_intra_spikes.py","generalize_from_raw_data.py",
-           "make_features_from_spk.py","plot_features.py","plot_probe.py","combine_dirs.py"]
+scripts = ["cluster_from_raw_data.py"]
 
 from distutils.core import setup,Extension
 from Cython.Distutils import build_ext
@@ -18,6 +17,6 @@ setup(name="caton",
       url="http://caton.googlecode.com",
       packages=["caton"],
       package_data={"caton":["data/*.txt"]},
-      cmdclass = {'build_ext': build_ext},      
+      cmdclass = {'build_ext': build_ext},
       include_dirs = [numpy.get_include(),'.'],
       ext_modules = [Extension("caton.CEM_extensions", ["caton/CEM_extensions.pyx"])])
