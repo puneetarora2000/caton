@@ -71,9 +71,6 @@ def load_probe(ProbeFileName):
     elif form2d.match(SiteLines[0]): 
         reader = read_form2d
         PROBE_DIM = 2
-    #elif Lines[0] == "MANUAL": 
-        #load_probe_manual(SiteLines[1:])
-        return
     else: 
         raise Exception("%s is not of valid form."%SiteLines[0])
         

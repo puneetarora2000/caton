@@ -16,6 +16,7 @@ from subset_sorting import cluster_withsubsets, spike_subsets
 from progressbar import ProgressBar,SimpleProgress,Bar,Percentage
 from interp_stuff import interp_around_peak
 from os.path import join,abspath,dirname
+from time import sleep
 
 ### Placeholders. These parameters are set in PARAMS.py
 T_BEFORE = T_AFTER = T_JOIN_CC = F_LOW = THRESH_SD = DETECT_POSITIVE = DTYPE = SEPARATE_CHANNELS_PCA = REGET_FEATURES = SORT_CLUS_BY_CHANNEL = FPC = BUTTER_ORDER = CHUNK_SIZE = CHUNK_OVERLAP = CHUNKS_FOR_THRESH = INTERP_METHOD = None
@@ -57,11 +58,10 @@ def print_params():
 ######## High-level scripts ########
 ####################################
 
-
 def classify_from_raw_data(JobType,DatFileName,ProbeFileName,max_spikes=None,output_dir=None,clu_dir=None):
     """Top level function that starts a data processing job. JobType is "batch" or "generalize". """
-    
     print_params()
+
     if not os.path.exists(DatFileName):
         raise Exception("Dat file %s does not exist"%DatFileName)
     DatFileName = os.path.abspath(DatFileName)
@@ -190,7 +190,6 @@ def good_inds(CluArr,TmArr):
     
 def combine_h5s(*dirs):
     "combine the data from a bunch of h5 files. Also make klusters files"    
-    #import wingdbstub
     outdirname = common_start(dirs) + "COMBINED"
     print dirs
     print os.path.abspath(os.curdir)
