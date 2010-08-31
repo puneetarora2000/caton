@@ -1,7 +1,7 @@
 from __future__ import with_statement
 import os,sys,numpy
 
-scripts = ["cluster_from_raw_data.py"]
+scripts = ["scripts/cluster_from_raw_data.py"]
 
 from distutils.core import setup,Extension
 from Cython.Distutils import build_ext
